@@ -1,0 +1,116 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+#include "../inc/idcres.h"
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#if !defined(AFX_RESOURCE_DLL)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "#include ""../inc/idcres.h\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#include "".rc2\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif 
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG3 DIALOGEX 0, 0, 482, 285
+STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Search File"
+FONT 10, "Courier New", 400, 0, 0xCC
+BEGIN
+    EDITTEXT        IDC_EDIT1,45,7,166,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,235,7,82,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT4,365,7,11,14,ES_NUMBER
+    EDITTEXT        IDC_EDIT5,453,7,22,14,ES_NUMBER
+    EDITTEXT        IDC_EDIT3,45,24,272,14,ES_AUTOHSCROLL
+    CONTROL         "Cached I/O",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,424,26,51,10
+    PUSHBUTTON      "Stop",IDCANCEL,424,264,24,14,WS_DISABLED
+    DEFPUSHBUTTON   "OK",IDOK,451,264,24,14
+    LTEXT           "File Name",IDC_STATIC,7,9,32,8
+    LTEXT           "Mask",IDC_STATIC,215,9,17,8
+    LTEXT           "Search",IDC_STATIC,7,27,26,8
+    LTEXT           "Max Files ",IDC_STATIC,322,10,38,8
+    LTEXT           "Deep Level",IDC_STATIC,408,10,41,8
+    LTEXT           "",IDC_STATIC1,7,267,182,8
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_OWNERDATA | WS_BORDER | WS_TABSTOP,7,42,468,217
+    PUSHBUTTON      "Dump",IDC_BUTTON1,396,264,24,14,WS_DISABLED
+    COMBOBOX        IDC_COMBO1,319,25,48,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Case-Sens",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,371,26,48,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_DIALOG3, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 475
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 278
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif   
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include ".rc2"
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
