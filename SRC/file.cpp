@@ -24,7 +24,7 @@ void LogError(Task* pTask, PCWSTR format, NAME_COMPONENT* name, NTSTATUS status)
 {
 	UNICODE_STRING us;
 	ULONG len = name->get_Length();
-	name->Print(us.Buffer = (PWSTR)alloca(us.Length = (USHORT)len*sizeof(WCHAR)), len);
+	name->Print(us.Buffer = (PWSTR)alloca(us.MaximumLength = us.Length = (USHORT)len*sizeof(WCHAR)), len);
 	len = 1 + _scwprintf(format, status, &us);
 	if (PWSTR sz = (PWSTR)pTask->m_log.Allocate(len*sizeof(WCHAR), __alignof(WCHAR)))
 	{
