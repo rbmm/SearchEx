@@ -908,6 +908,12 @@ RUNDOWN_REF * g_IoRundown = &IoRundown;
 
 BOOL MyIsNameInExpression(PCWSTR Expression, PUNICODE_STRING Name);
 
+#include "../asio/io.h"
+
+namespace CThreadPool {
+	extern HANDLE m_hiocp;
+};
+
 void ep(void*)
 {
 	ULONG M;

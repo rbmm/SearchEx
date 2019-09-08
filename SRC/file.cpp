@@ -138,7 +138,7 @@ void File::Read()
 		m_pTask->BeginIO();
 
 		// not use LockHandle()/UnlockHandle() here because call Close() only from destructor - so m_hFile valid here
-		irp->CheckNtStatus(NtReadFile(m_hFile, NULL, NULL, irp, 
+		irp->CheckNtStatus(NtReadFile(getHandleNoLock(), NULL, NULL, irp, 
 			irp, m_pbReadBuffer, m_cbChunk, &m_ByteOffset, 0));
 	}
 }
@@ -251,7 +251,7 @@ void Folder::Query()
 		m_pTask->BeginIO();
 
 		// not use LockHandle()/UnlockHandle() here because call Close() only from destructor - so m_hFile valid here
-		irp->CheckNtStatus(NtQueryDirectoryFile(m_hFile, NULL, NULL, irp, irp, 
+		irp->CheckNtStatus(NtQueryDirectoryFile(getHandleNoLock(), NULL, NULL, irp, irp, 
 			m_buf, sizeof(m_buf), FileDirectoryInformation, FALSE, NULL, FALSE));
 	}
 }
@@ -319,7 +319,7 @@ void Folder::ProcessFolder(Task* pTask, POBJECT_ATTRIBUTES poa, NAME_COMPONENT* 
 	}
 }
 
-void Folder::IOCompletionRoutine(CDataPacket* /*packet*/, DWORD /*Code*/, NTSTATUS status, ULONG_PTR dwNumberOfBytesTransfered, PVOID /*Pointer*/)
+void Folder::IOCompletionRoutine(CDataPacket* /*packet*/, DWORD /*Code*/, NTSTATUS status, ULONG_PTR /*dwNumberOfBytesTransfered*/, PVOID /*Pointer*/)
 {
 	Task* pTask = m_pTask;
 	
@@ -339,10 +339,6 @@ void Folder::IOCompletionRoutine(CDataPacket* /*packet*/, DWORD /*Code*/, NTSTAT
 	else
 	{
 		m_pfdi = &m_fdi;
-		// optimization : in m_buf enough space for how minimum one file record
-		// this only happens if no more files to fill
-		// if we call NtQueryDirectoryFile here - it return STATUS_NO_MORE_FILES
-		m_bContinue = sizeof(m_buf) - dwNumberOfBytesTransfered < (ULONG)FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, FileName[0xff]);
 
 		Process();
 	}
@@ -364,7 +360,7 @@ void Folder::Process()
 		ULONG NextEntryOffset = 0;
 
 		UNICODE_STRING ObjectName;
-		OBJECT_ATTRIBUTES oa = { sizeof(oa), m_hFile, &ObjectName };
+		OBJECT_ATTRIBUTES oa = { sizeof(oa), getHandleNoLock(), &ObjectName };
 
 		int level = m_nLevel + 1;
 
@@ -407,7 +403,7 @@ void Folder::Process()
 		m_pfdi = 0;
 	}
 
-	if (m_bContinue && !pTask->PauseFolder(this))
+	if (!pTask->PauseFolder(this))
 	{
 		Query();
 	}

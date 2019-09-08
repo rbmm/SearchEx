@@ -60,7 +60,6 @@ class Folder : public FileOfFolder, SLIST_ENTRY
 
 	FILE_DIRECTORY_INFORMATION* m_pfdi;
 	ULONG m_nLevel;
-	BOOLEAN m_bContinue;
 	union {
 		FILE_DIRECTORY_INFORMATION m_fdi;
 		UCHAR m_buf[0x10000];// must be aligned as FILE_DIRECTORY_INFORMATION
