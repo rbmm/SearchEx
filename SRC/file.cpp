@@ -4,11 +4,7 @@ _NT_BEGIN
 
 #include "task.h"
 #include "file.h"
-
-extern "C"{
-	PBYTE __fastcall strnstr(SIZE_T n1, const void* str1, SIZE_T n2, const void* str2);
-	PBYTE __fastcall wtrnstr(SIZE_T n1, const void* str1, SIZE_T n2, const void* str2);
-}
+#include "../winZ/str.h"
 
 void Upcase(UINT cp, PSTR buf, int cch, PWSTR wz)
 {
@@ -196,7 +192,7 @@ void File::OnRead(ULONG_PTR dwNumberOfBytesTransfered)
 				(PWSTR)pbReadBuffer, (ULONG)dwNumberOfBytesTransfered / sizeof(WCHAR));
 		}
 
-		while (pb = wtrnstr((pbEnd - pb) / sizeof(WCHAR), pb, cbStr / sizeof(WCHAR), pbStr))
+		while (pb = (PBYTE)wtrnstr((pbEnd - pb) / sizeof(WCHAR), pb, cbStr / sizeof(WCHAR), pbStr))
 		{
 			pTask->AddSearchResult(name, ByteOffset + (pb - pbReadBuffer) - cbStr);
 
@@ -211,7 +207,7 @@ void File::OnRead(ULONG_PTR dwNumberOfBytesTransfered)
 				(PWSTR)RtlOffsetToPointer(pbReadBuffer, dwNumberOfBytesTransfered));
 		}
 
-		while (pb = strnstr(pbEnd - pb, pb, cbStr, pbStr))
+		while (pb = (PBYTE)strnstr(pbEnd - pb, pb, cbStr, pbStr))
 		{
 			pTask->AddSearchResult(name, ByteOffset + (pb - pbReadBuffer) - cbStr);
 

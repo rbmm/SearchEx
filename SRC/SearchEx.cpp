@@ -8,6 +8,7 @@ _NT_BEGIN
 #include "resource.h"
 #include "../inc/initterm.h"
 #include "../inc/rundown.h"
+#include "../asio/io.h"
 #include "../asio/tp.h"
 #include "../winZ/window.h"
 #include "../winZ/ctrl.h"
@@ -893,28 +894,20 @@ void RedirectCryptBinaryToString()
 	}
 }
 
-struct MY_RUNDOWN_REF : RUNDOWN_REF
-{
-	virtual void RundownCompleted()
-	{
-		CThreadPool::Stop();
-		destroyterm();
-		ExitProcess(0);
-	}
-
-} IoRundown;
-
-RUNDOWN_REF * g_IoRundown = &IoRundown;
-
 BOOL MyIsNameInExpression(PCWSTR Expression, PUNICODE_STRING Name);
 
-#include "../asio/io.h"
+void IO_RUNDOWN::RundownCompleted()
+{
+	CThreadPool::Stop();
+	destroyterm();
+	ExitProcess(0);
+}
 
 namespace CThreadPool {
 	extern HANDLE m_hiocp;
 };
 
-void ep(void*)
+void WINAPI ep(void*)
 {
 	ULONG M;
 	RtlGetNtVersionNumbers(&M, 0, 0);
@@ -939,7 +932,7 @@ void ep(void*)
 		p->Release();
 	}
 
-	g_IoRundown->BeginRundown();
+	IO_RUNDOWN::g_IoRundown.BeginRundown();
 }
 
 _NT_END
