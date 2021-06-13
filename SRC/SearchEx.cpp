@@ -42,7 +42,7 @@ class SearchDlg : public ZDlg, CIcons
 	BOOL m_bInSearch;
 
 	enum {
-		i_ANSI, i_OEM, i_UTF8, i_UTF16, i_HEX
+		i_ANSI, i_OEM, i_UTF8, i_UTF16, i_HEX, i_DWORD
 	};
 
 	void OnInitDialog(HWND hwndDlg);
@@ -92,6 +92,7 @@ void SearchDlg::OnInitDialog(HWND hwndDlg)
 	ComboBox_AddString(hwnd, L"UTF-8");
 	ComboBox_AddString(hwnd, L"UTF-16");
 	ComboBox_AddString(hwnd, L"HEX");
+	ComboBox_AddString(hwnd, L"DWORD");
 	ComboBox_SetCurSel(hwnd, i_ANSI);
 	m_Encoding = i_ANSI;
 
@@ -224,41 +225,70 @@ void SearchDlg::OnOk(HWND hwndDlg)
 		case i_ANSI:
 			CodePage = CP_ACP;
 			break;
+
 		case i_OEM:
 			CodePage = CP_OEMCP;
 			break;
+
 		case i_UTF8:
 			CodePage = CP_UTF8;
 			lpUsedDefaultChar = 0;
 			break;
+
 		case i_UTF16:
 			pvStr = str, cbStr = len * sizeof(WCHAR);
-			break;
+			goto __ok;
+
 		case i_HEX:
-			if (!CryptStringToBinaryW(str, len, CRYPT_STRING_HEX, 0, &cbStr, 0, 0) ||
-				!CryptStringToBinaryW(str, len, CRYPT_STRING_HEX, (PBYTE)(pvStr = alloca(cbStr)), &cbStr, 0, 0))
+			while (CryptStringToBinaryW(str, len, CRYPT_STRING_HEX, (PBYTE)pvStr, &cbStr, 0, 0))
 			{
-				SetFocus(hwnd);
-				MessageBoxW(hwndDlg, L"Invalid Hex string", 0, MB_ICONWARNING|MB_OK);
-				return ;
+				if (pvStr)
+				{
+					goto __ok;
+				}
+
+				pvStr = alloca(cbStr);
 			}
-			break;
+			SetFocus(hwnd);
+			MessageBoxW(hwndDlg, L"Invalid Hex string", 0, MB_ICONWARNING|MB_OK);
+			return;
+
+		case i_DWORD:
+			if (len <= 8)
+			{
+				if (ULONG n =  wcstoul(str, &str, 16))
+				{
+					if (!*str)
+					{
+						cbStr = sizeof(n);
+						pvStr = &n;
+						goto __ok;
+					}
+				}
+			}
+			SetFocus(hwnd);
+			MessageBoxW(hwndDlg, L"Invalid DWORD", 0, MB_ICONWARNING|MB_OK);
+			return;
 		default:
 			return;
 		}
 
-		if (!pvStr)
+		while ((cbStr = WideCharToMultiByte(CodePage, 0, str, len, 0, 0, 0, lpUsedDefaultChar)) && !UsedDefaultChar)
 		{
-			if (!(cbStr = WideCharToMultiByte(CodePage, 0, str, len, 0, 0, 0, lpUsedDefaultChar)) || UsedDefaultChar)
+			if (pvStr)
 			{
-				SetFocus(hwnd);
-				MessageBoxW(hwndDlg, L"string can not be converted !", 0, MB_ICONWARNING|MB_OK);
-				return ;
+				goto __ok;
 			}
-			WideCharToMultiByte(CodePage, 0, str, len, (PSTR)(pvStr = alloca(cbStr)), cbStr, 0, lpUsedDefaultChar);
+
+			pvStr = alloca(cbStr);
 		}
+
+		SetFocus(hwnd);
+		MessageBoxW(hwndDlg, L"string can not be converted !", 0, MB_ICONWARNING|MB_OK);
+		return ;
 	}
 
+__ok:
 	if (!(len = GetWindowTextLength(hwnd = GetDlgItem(hwndDlg, IDC_EDIT1))))
 	{
 		SetFocus(hwnd);
@@ -273,7 +303,7 @@ void SearchDlg::OnOk(HWND hwndDlg)
 
 	NTSTATUS status = m_task.Start(Name, mask, pvStr, cbStr, maxIoCount, maxLevel,
 		IsDlgButtonChecked(hwndDlg, IDC_CHECK1) == BST_CHECKED, m_Encoding == i_UTF16,
-		m_Encoding == i_HEX || IsDlgButtonChecked(hwndDlg, IDC_CHECK2) == BST_CHECKED, CodePage);
+		m_Encoding >= i_HEX || IsDlgButtonChecked(hwndDlg, IDC_CHECK2) == BST_CHECKED, CodePage);
 
 	if (0 <= status)
 	{
@@ -438,8 +468,8 @@ void SearchDlg::OnEncodingChanged(HWND hwndEdit, HWND hwndCombo, HWND hwndCheck)
 		EnableWindow(hwndCheck, TRUE);
 	}
 
-	// for hex search case no sense
-	ShowWindow(hwndCheck, Encoding == i_HEX ? SW_HIDE : SW_SHOW);
+	// for hex/dword search case no sense
+	ShowWindow(hwndCheck, Encoding >= i_HEX ? SW_HIDE : SW_SHOW);
 
 	ULONG len = GetWindowTextLengthW(hwndEdit);
 
@@ -448,17 +478,22 @@ void SearchDlg::OnEncodingChanged(HWND hwndEdit, HWND hwndCombo, HWND hwndCheck)
 		return ;
 	}
 
-	PWSTR sz = (PWSTR)alloca((len + 1)* sizeof(WCHAR));
+	PWSTR sz = (PWSTR)alloca((len + 1)* sizeof(WCHAR)), wz = 0;
 	GetWindowTextW(hwndEdit, sz, len + 1);
 
 	PVOID pv = 0;
 	ULONG cb = 0;
 	UINT CodePage = 0;
+	BOOL UsedDefaultChar = FALSE, *lpUsedDefaultChar = &UsedDefaultChar;
+
+	if ((_Encoding == i_DWORD && Encoding != i_HEX) || 
+		(Encoding == i_DWORD && _Encoding != i_HEX))
+	{
+		goto __set;
+	}
 
 	if (Encoding == i_HEX)
 	{
-		BOOL UsedDefaultChar = FALSE, *lpUsedDefaultChar = &UsedDefaultChar;
-
 		switch (_Encoding)
 		{
 		case i_ANSI:
@@ -473,71 +508,104 @@ void SearchDlg::OnEncodingChanged(HWND hwndEdit, HWND hwndCombo, HWND hwndCheck)
 			break;
 		case i_UTF16:
 			pv = sz, cb = len * sizeof(WCHAR);
-			break;
-		}
-
-		if (!pv)
-		{
-			if ((cb = WideCharToMultiByte(CodePage, 0, sz, len, 0, 0, 0, lpUsedDefaultChar)) && !UsedDefaultChar)
+			goto __0;
+		case i_DWORD:
+			if (ULONG n = wcstoul(sz, &sz, 16))
 			{
-				WideCharToMultiByte(CodePage, 0, sz, len, (PSTR)(pv = alloca(cb)), cb, 0, 0);
+				if (!*sz)
+				{
+					pv = &n, cb = sizeof(n);
+					goto __0;
+				}
 			}
+			[[fallthrough]];
+		default:
+			return;
 		}
 
-		sz = 0;
-
-		if (pv)
+		while ((cb = WideCharToMultiByte(CodePage, 0, sz, len, (PSTR)pv, cb, 0, lpUsedDefaultChar)) && !UsedDefaultChar)
 		{
-			CryptBinaryToStringW((PBYTE)pv, cb, CRYPT_STRING_HEX|CRYPT_STRING_NOCRLF, 0, &(len = 0)) && 
-				CryptBinaryToStringW((PBYTE)pv, cb, CRYPT_STRING_HEX|CRYPT_STRING_NOCRLF, sz = (PWSTR)alloca(len* sizeof(WCHAR)), &len);
-		}
+			if (pv)
+			{
+__0:
+				sz = 0, len = 0;
+				while (CryptBinaryToStringW((PBYTE)pv, cb, CRYPT_STRING_HEX|CRYPT_STRING_NOCRLF, sz, &len))
+				{
+					if (sz)
+					{
+						wz = sz;
+						goto __set;
+					}
 
-		SetWindowTextW(hwndEdit, sz);
+					sz = (PWSTR)alloca(len* sizeof(WCHAR));
+				}
+			}
+
+			pv = alloca(cb);
+		}
 	}
 	else if (_Encoding == i_HEX)
 	{
-		if (CryptStringToBinaryW(sz, len, CRYPT_STRING_HEX, 0, &cb, 0, 0) &&
-			CryptStringToBinaryW(sz, len, CRYPT_STRING_HEX, (PBYTE)(pv = alloca(cb + sizeof(WCHAR))), &cb, 0, 0))
+		while (CryptStringToBinaryW(sz, len, CRYPT_STRING_HEX, (PBYTE)pv, &cb, 0, 0))
 		{
-			sz = 0;
-
-			switch (Encoding)
+			if (pv)
 			{
-			case i_ANSI:
-				CodePage = CP_ACP;
-				break;
-			case i_OEM:
-				CodePage = CP_OEMCP;
-				break;
-			case i_UTF8:
-				CodePage = CP_UTF8;
-				break;
-			case i_UTF16:
-				if (!(cb & (sizeof(WCHAR) - 1)))
+				sz = 0;
+
+				switch (Encoding)
 				{
-					len = cb / sizeof(WCHAR);
-					sz = (PWSTR)pv;
+				case i_ANSI:
+					CodePage = CP_ACP;
+					break;
+				case i_OEM:
+					CodePage = CP_OEMCP;
+					break;
+				case i_UTF8:
+					CodePage = CP_UTF8;
+					break;
+				case i_UTF16:
+					if (!(cb & (sizeof(WCHAR) - 1)))
+					{
+						len = cb / sizeof(WCHAR);
+						sz = (PWSTR)pv;
+						goto __1;
+					}
+					goto __set;
+				case i_DWORD:
+					if (cb == sizeof(ULONG))
+					{
+						wz = (PWSTR)alloca(9 * sizeof(WCHAR));
+						_itow(*(ULONG*)pv, wz, 16);
+					}
+					goto __set;
+				default: return;
 				}
+
+				while (len = MultiByteToWideChar(CodePage, MB_ERR_INVALID_CHARS, (PSTR)pv, cb, sz, len))
+				{
+					if (sz)
+					{
+__1:
+						sz[len] = 0;
+						wz = sz;
+						goto __set;
+					}
+
+					sz = (PWSTR)alloca((len + 1) * sizeof(WCHAR));
+				}
+
 				break;
 			}
 
-			if (!sz && Encoding != i_UTF16)
-			{
-				if (len = MultiByteToWideChar(CodePage, MB_ERR_INVALID_CHARS, (PSTR)pv, cb, 0, 0))
-				{
-					MultiByteToWideChar(CodePage, MB_ERR_INVALID_CHARS, (PSTR)pv, cb, 
-						sz = (PWSTR)alloca((len + 1) * sizeof(WCHAR)), len);
-				}						
-			}
-
-			if (sz)
-			{
-				sz[len] = 0;
-			}
+			pv = alloca(cb + sizeof(WCHAR));
 		}
-
-		SetWindowTextW(hwndEdit, sz);
 	}
+	else
+	{
+		return;
+	}
+__set:
+	SetWindowTextW(hwndEdit, wz);
 }
 
 PWSTR SearchDlg::ReadData(HANDLE hFile, PLARGE_INTEGER ByteOffset, PBYTE pb, ULONG& cb, PWSTR pszText, ULONG& cchTextMax)
