@@ -273,7 +273,7 @@ void SearchDlg::OnOk(HWND hwndDlg)
 			return;
 		}
 
-		while ((cbStr = WideCharToMultiByte(CodePage, 0, str, len, 0, 0, 0, lpUsedDefaultChar)) && !UsedDefaultChar)
+		while ((cbStr = WideCharToMultiByte(CodePage, 0, str, len, (PSTR)pvStr, cbStr, 0, lpUsedDefaultChar)) && !UsedDefaultChar)
 		{
 			if (pvStr)
 			{
